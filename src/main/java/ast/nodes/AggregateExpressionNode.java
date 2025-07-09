@@ -57,6 +57,10 @@ public class AggregateExpressionNode implements ExpressionNode {
         return distinct;
     }
 
+    public AggregateFunction getFunction() {
+        return function;
+    }
+
     /**
      * Accepts a visitor
      * @param visitor The visitor instance that will process this node.

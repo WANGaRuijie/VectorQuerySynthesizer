@@ -28,4 +28,24 @@ public interface Visitor<R, C> {
 
     R visit(NotFilterNode node, C context);
 
+    R visit(BinaryOpExpressionNode node, C context);
+
+    R visit(CastExpressionNode node, C context);
+
+    R visit(SortExpression node, C context);
+
+    R visit(SelectNode node, C context);
+
+    R visit(JoinNode node, C context);
+
+    R visit(UnionNode node, C context);
+
+    R visit(OrderByNode node, C context);
+
+    R visit(LimitNode node, C context);
+
+    R visit(RenameNode node, C context);
+
+    R visit(AggregationNode node, C context);
+
 }

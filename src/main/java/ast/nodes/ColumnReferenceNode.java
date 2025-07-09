@@ -32,6 +32,16 @@ public class ColumnReferenceNode implements ExpressionNode {
         return visitor.visit(this, context);
     }
 
+
+    /**
+     * Gets the name of the column being referenced.
+     *
+     * @return The column name as a string.
+     */
+    public String getColumnName() {
+        return columnName;
+    }
+
     /**
      * Provides a string representation for debugging purposes.
      * @return A string in the format "Column(columnName)".

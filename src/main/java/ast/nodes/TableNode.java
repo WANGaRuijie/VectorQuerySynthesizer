@@ -16,6 +16,10 @@ public class TableNode implements QueryNode {
         return visitor.visit(this, context);
     }
 
+    public String getTableName() {
+        return tableName;
+    }
+
     @Override
     public String toString() {
         return "Table(" + tableName + ")";

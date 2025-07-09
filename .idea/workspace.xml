@@ -5,30 +5,26 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="80745de8-53b6-4306-ba5c-40cd6521a510" name="更改" comment="">
-      <change afterPath="$PROJECT_DIR$/src/main/java/ast/ASTNode.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/ast/ExpressionNode.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/ast/FilterNode.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/ast/QueryNode.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/ast/ValueNode.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/ast/Visitor.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/ast/enums/AggregateFunction.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/ast/enums/DataType.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/ast/enums/DistanceOperator.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/ast/enums/PredicateOperator.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/ast/nodes/AggregateExpressionNode.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/ast/nodes/AndFilterNode.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/ast/nodes/ColumnReferenceNode.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/ast/nodes/ConstantValueNode.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/ast/nodes/DistanceExpressionNode.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/ast/nodes/IsNullPredicateNode.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/ast/nodes/NotFilterNode.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/ast/nodes/NullValueNode.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/ast/nodes/OrFilterNode.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/ast/nodes/PredicateNode.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/ast/nodes/ProjectionNode.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/ast/nodes/TableNode.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/ast/ASTPrinter.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/ast/enums/BinaryOperator.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/ast/enums/SortOrder.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/ast/nodes/AggregationNode.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/ast/nodes/BinaryOpExpressionNode.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/ast/nodes/CastExpressionNode.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/ast/nodes/JoinNode.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/ast/nodes/LimitNode.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/ast/nodes/OrderByNode.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/ast/nodes/RenameNode.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/ast/nodes/SelectNode.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/ast/nodes/SortExpression.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/ast/nodes/UnionNode.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/org/example/Main.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/Main.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/Main.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/Main.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ast/Visitor.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ast/Visitor.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ast/nodes/AggregateExpressionNode.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ast/nodes/AggregateExpressionNode.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ast/nodes/ColumnReferenceNode.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ast/nodes/ColumnReferenceNode.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ast/nodes/ProjectionNode.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ast/nodes/ProjectionNode.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ast/nodes/TableNode.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ast/nodes/TableNode.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -46,7 +42,7 @@
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="ProblemsViewState">
-    <option name="selectedTabId" value="ProjectErrors" />
+    <option name="selectedTabId" value="CurrentFile" />
   </component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 8
@@ -78,6 +74,20 @@
       <recent name="" />
     </key>
   </component>
+  <component name="RunManager">
+    <configuration name="Main" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
+      <option name="MAIN_CLASS_NAME" value="Main" />
+      <module name="VectorQuerySynthesizer" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="应用程序.Main" />
+      </list>
+    </recent_temporary>
+  </component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="应用程序级" UseSingleDictionary="true" transferred="true" />
   <component name="TaskManager">
     <task active="true" id="Default" summary="默认任务">
@@ -88,7 +98,7 @@
       <updated>1751928503948</updated>
       <workItem from="1751928504948" duration="1064000" />
       <workItem from="1751929730351" duration="1273000" />
-      <workItem from="1752009611561" duration="7883000" />
+      <workItem from="1752009611561" duration="11136000" />
     </task>
     <servers />
   </component>
