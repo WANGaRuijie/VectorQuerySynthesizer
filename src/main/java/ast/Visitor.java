@@ -48,4 +48,10 @@ public interface Visitor<R, C> {
 
     R visit(AggregationNode node, C context);
 
+    R visit(WithNode node, C context);
+
+    R visit(FunctionCallNode node, C context);
+
+    R visit(ScalarSubqueryNode node, C context);
+
 }
