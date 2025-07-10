@@ -1,0 +1,59 @@
+query_statement ::= [ with_clause ] q
+
+with_clause ::= WITH cte [ , cte ]*
+
+cte ::= identifier AS '(' q ')'
+
+q ::= T                                 
+    | Proj(selection_vector, q)                        
+    | Select(q, f)                      
+    | Join(q1, q2, f)  
+    | CrossJoin(q1, q2)                 
+    | Aggr(c_group, c_agg, agg, q, f)   
+    | Union(q1, q2)                    
+    | OrderBy(q, expression_vector, ASC/DESC/NULL)           
+    | Limit(q, v)                      
+    | Rename(q, new_name, c)           
+
+selection_vector ::= aliased_expr [ , aliased_expr ]*
+
+aliased_expr :: = expr [ AS identifier ]
+
+expr ::= v                                
+       | c                                             // column reference            
+       | expr op expr                     
+       | expr dist_op expr                            
+       | Aggr(c)                          
+       | expr '::' type                                // needed for binary quantization and subvectors
+       | identifier '(' [expression_vector] ')'.       // generic function call, e.g., binary_quantize() and subvector()
+       | '(' q ')'                                     // scalar subquery 
+
+// E.g., subvector(embedding,1,3)::vector(3)
+// E.g., binary_quantize(embedding)
+
+expression_vector ::= expression [ , expr ]*
+            
+v ::= const                          
+       | vector_literal 
+       | sparse_vector_literal           
+       | NULL
+
+// sparse_vector_literal : '\'' '{' [0-9]+ ':' [0-9]+ (',' [0-9]+ ':' [0-9]+)* '}' '/' [0-9]+ '\''   
+// The format is {index1:value1,...}/dimensions e.g., '{1:1,3:2,5:3}/6' is equal to '[1,0,2,0,3,0]'
+
+f ::= True | v binop v 
+      | Exists q | Is Null c
+      | f And f | f Or f | Not f
+
+type ::= int | text | double | boolean 
+          | vector [ '(' INTEGER ')' ] 
+          | sparsevec [ '(' INTEGER ')' ]
+
+binop ::= = | > | < | <= | >= | !=
+
+dist_op ::= <->
+              |  <=>       
+              |  <#>
+              |  <+>
+              |  <~>   // Hamming distance (binary vector)
+              |  <%>   // Jaccard distance (binary vector)

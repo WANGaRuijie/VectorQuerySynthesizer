@@ -5,15 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="80745de8-53b6-4306-ba5c-40cd6521a510" name="更改" comment="">
-      <change afterPath="$PROJECT_DIR$/src/main/java/ast/nodes/AliasedExpression.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/ast/nodes/FunctionCallNode.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/ast/nodes/ScalarSubqueryNode.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/ast/nodes/WithNode.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/Main.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/Main.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ast/ASTPrinter.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ast/ASTPrinter.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ast/Visitor.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ast/Visitor.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ast/nodes/ProjectionNode.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ast/nodes/ProjectionNode.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -91,7 +83,7 @@
       <workItem from="1751928504948" duration="1064000" />
       <workItem from="1751929730351" duration="1273000" />
       <workItem from="1752009611561" duration="11924000" />
-      <workItem from="1752104620230" duration="2894000" />
+      <workItem from="1752104620230" duration="5799000" />
     </task>
     <servers />
   </component>
