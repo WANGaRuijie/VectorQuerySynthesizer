@@ -1,10 +1,13 @@
 package database;
 
+import com.pgvector.PGvector;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Properties;
 
 public class ConnectionManager {
@@ -33,6 +36,13 @@ public class ConnectionManager {
                                 props.getProperty("db.user"),
                                 props.getProperty("db.password")
                         );
+
+                        // Get a statement and explicitly add the vector type to the connection's type map.
+                        // This tells the JDBC driver how to handle the 'vector' type from the database.
+                        try (Statement stmt = connection.createStatement()) {
+                            PGvector.addVectorType(connection);
+                        }
+
                     } catch (IOException | ClassNotFoundException e) {
                         throw new RuntimeException("Failed to load database configuration", e);
                     }
@@ -53,7 +63,7 @@ public class ConnectionManager {
                     System.err.println("Error closing the database connection.");
                     e.printStackTrace();
                 } finally {
-                    connection = null; // 显式设置为null
+                    connection = null;
                 }
             }
         }

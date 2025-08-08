@@ -1,6 +1,7 @@
 package ast.nodes;
 
 import ast.ExpressionNode;
+import ast.Visitor;
 
 import java.util.Objects;
 
@@ -27,4 +28,5 @@ public record AliasedExpression(ExpressionNode expression, String alias) {
     public boolean hasAlias() {
         return alias != null && !alias.isEmpty();
     }
+
 }

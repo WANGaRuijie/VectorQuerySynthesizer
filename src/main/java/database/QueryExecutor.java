@@ -55,41 +55,40 @@ public class QueryExecutor {
         }
     }
 
-    /**
-     * 一个私有的辅助方法，负责将 ResultSet 转换为 Table。
-     * @param rs 数据库查询返回的结果集。
-     * @return 一个填充了数据的 Table 对象。
-     * @throws SQLException
-     */
     private Table convertResultSetToTable(ResultSet rs) throws SQLException {
         ResultSetMetaData metaData = rs.getMetaData();
         int columnCount = metaData.getColumnCount();
 
-        // 1. 提取列名
         List<String> columnNames = new ArrayList<>();
         for (int i = 1; i <= columnCount; i++) {
             columnNames.add(metaData.getColumnName(i));
         }
 
-        // 2. 提取所有行数据
         List<List<Object>> rows = new ArrayList<>();
         while (rs.next()) {
             List<Object> row = new ArrayList<>();
             for (int i = 1; i <= columnCount; i++) {
                 Object obj = rs.getObject(i);
 
-                // 特别处理 pgvector 类型
+                // --- FIX STARTS HERE: Data Normalization ---
                 if (obj instanceof PGvector) {
-                    // 将 pgvector-java 的 PGvector 对象转换为我们自己的 model.Vector 对象
                     row.add(new Vector(((PGvector) obj).toArray()));
+                } else if (obj instanceof Number) {
+                    // Normalize all integer-like numbers to Long for consistent comparison.
+                    if (obj instanceof Double || obj instanceof Float || obj instanceof java.math.BigDecimal) {
+                        row.add(((Number) obj).doubleValue());
+                    } else {
+                        row.add(((Number) obj).longValue());
+                    }
                 } else {
                     row.add(obj);
                 }
+                // --- FIX ENDS HERE ---
             }
             rows.add(row);
         }
 
-        // 3. 创建并返回我们自己的 Table 对象
-        return new Table(columnNames, rows);
+        return new Table(null, columnNames, rows);
     }
+
 }
