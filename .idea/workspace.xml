@@ -5,12 +5,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="80745de8-53b6-4306-ba5c-40cd6521a510" name="更改" comment="">
-      <change afterPath="$PROJECT_DIR$/src/main/java/ast/ASTTranslator.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/synthesizer/Enumerator.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/synthesizer/TopDownEnumerator.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/Main.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/Main.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ast/nodes/AliasedExpression.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ast/nodes/AliasedExpression.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/database/ConnectionManager.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/database/ConnectionManager.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ast/ASTTranslator.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ast/ASTTranslator.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/database/QueryExecutor.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/database/QueryExecutor.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/model/Table.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/model/Table.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/synthesizer/Synthesizer.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/synthesizer/Synthesizer.java" afterDir="false" />
@@ -105,6 +103,9 @@
       <workItem from="1754521517372" duration="4660000" />
       <workItem from="1754529877996" duration="2461000" />
       <workItem from="1754605071529" duration="10299000" />
+      <workItem from="1754678583595" duration="628000" />
+      <workItem from="1754864325996" duration="1992000" />
+      <workItem from="1754870791247" duration="5644000" />
     </task>
     <servers />
   </component>

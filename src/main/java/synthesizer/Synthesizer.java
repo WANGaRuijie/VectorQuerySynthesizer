@@ -1,97 +1,86 @@
 package synthesizer;
 
-
-import ast.*;
+import ast.QueryNode;
 import ast.nodes.*;
+import ast.ASTTranslator;
 import database.QueryExecutor;
-import model.*;
-
+import model.Table;
+import model.Vector;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
+import java.util.stream.Collectors;
 
 public class Synthesizer {
 
-    private final Enumerator enumerator;
     private final QueryExecutor queryExecutor;
-    private final ASTTranslator astTranslator;
+    private final ASTTranslator sqlTranslator;
 
-    /**
-     * Constructor for the Synthesizer.
-     * @param enumerator The component that generates AST node parts.
-     * @param queryExecutor The component that executes queries.
-     */
-    public Synthesizer(Enumerator enumerator, QueryExecutor queryExecutor) {
-        this.enumerator = enumerator;
+    public Synthesizer(QueryExecutor queryExecutor) {
         this.queryExecutor = queryExecutor;
-        this.astTranslator = new ASTTranslator(); // Visitor for converting AST to String
+        this.sqlTranslator = new ASTTranslator(); // Instantiate the translator
     }
 
     /**
-     * The main synthesis method.
-     * @return A list of QueryNode ASTs that successfully produce the output table.
+     * Synthesizes queries using a top-down enumerative search.
      */
     public List<QueryNode> synthesize(List<Table> inputTables, Table outputTable, List<Vector> queryVectors) {
 
-        System.out.println("Starting synthesis...");
+        System.out.println("Starting top-down synthesis process...");
         List<QueryNode> solutions = new ArrayList<>();
 
-        // 1. Generate all building blocks at once
-        Map<Enumerator.ExpressionType, List<? extends ASTNode>> pool =
-                enumerator.generateBuildingBlocks(inputTables, queryVectors);
+        if (inputTables.isEmpty()) {
+            return solutions;
+        }
+        Table primaryTable = inputTables.get(0);
 
-        // Extract the parts we need for our first simple template
-        List<DistanceExpressionNode> distanceExpressions =
-                (List<DistanceExpressionNode>) pool.get(Enumerator.ExpressionType.DISTANCE_EXPRESSION);
+        TopDownEnumerator enumerator = new TopDownEnumerator(inputTables, queryVectors);
 
-        // Assume we're working with the first table for now
-        if (inputTables.isEmpty()) return solutions;
-        Table primaryInputTable = inputTables.get(0);
-        QueryNode sourceTableNode = new TableNode(primaryInputTable.getTableName()); // Base of our query
+        // Pre-create the "SELECT *" part for final assembly
+        List<AliasedExpression> selectAllColumns = primaryTable.getColumnNames().stream()
+                .map(colName -> new AliasedExpression(new ColumnReferenceNode(colName)))
+                .collect(Collectors.toList());
 
-        // 2. Assembly loop for the "Basic Vector Search" template
-        System.out.println("Trying Template: Basic Vector Search (SELECT-FROM-ORDER_BY-LIMIT)...");
-        for (DistanceExpressionNode distExpr : distanceExpressions) {
+        for (int depth = 1; depth <= 5; depth++) { // Try up to a reasonable depth
+            System.out.println("\n--- Enumerating queries at depth: " + depth + " ---");
 
-            int limitK = outputTable.getRowCount();
-            if (limitK == 0) continue; // Cannot synthesize for empty output yet
+            // 1. Generate all possible query BODIES (e.g., TableNode, OrderByNode, SelectNode)
+            List<QueryNode> candidateBodies = enumerator.enumerate(depth);
 
-            // 2.1 Assemble the OrderByNode and LimitNode
-            // The structure is Query -> Limit -> OrderBy -> Source
-            OrderByNode orderByNode = new OrderByNode(
-                    sourceTableNode,
-                    List.of(new SortExpression(distExpr)) // Default is ASC, which is what we want for distance
-            );
-            LimitNode limitNode = new LimitNode(orderByNode, limitK);
+            System.out.println("Generated " + candidateBodies.size() + " candidate query bodies.");
 
-            // 2.2 Assemble the final ProjectionNode
-            // For now, let's assume SELECT *
-            // To do SELECT *, we can select all columns from the source table.
-            List<AliasedExpression> selectAllColumns = new ArrayList<>();
-            for(String colName : primaryInputTable.getColumnNames()) {
-                selectAllColumns.add(new AliasedExpression(new ColumnReferenceNode(colName)));
-            }
-            QueryNode candidateAST = new ProjectionNode(limitNode, selectAllColumns);
+            // 2. Evaluate each candidate by WRAPPING it in a final ProjectionNode
+            for (QueryNode body : candidateBodies) {
 
+                // --- THIS IS THE CRITICAL FIX ---
+                // Every generated body must be wrapped in a ProjectionNode to form a complete,
+                // executable SELECT statement.
+                QueryNode finalCandidateAST = new ProjectionNode(body, selectAllColumns);
+                // --- END OF FIX ---
 
-            // 3. Evaluate and Verify
-            try {
-                // Use the ASTPrinter visitor to convert the AST to a SQL string
-                String sql = candidateAST.accept(astTranslator, null);
-                Table resultTable = queryExecutor.executeQuery(sql);
+                try {
+                    String sql = sqlTranslator.translate(finalCandidateAST);
+                    Table resultTable = queryExecutor.executeQuery(sql);
 
-                if (resultTable.equals(outputTable)) {
-                    System.out.println("SUCCESS: Found a matching query!");
-                    System.out.println("SQL: " + sql);
-                    solutions.add(candidateAST);
+                    if (resultTable.equals(outputTable)) {
+                        System.out.println("SUCCESS: Found a matching query!");
+                        System.out.println("SQL: " + sql);
+                        solutions.add(finalCandidateAST);
+                    }
+                } catch (UnsupportedOperationException e) {
+                    // This can happen if the translator doesn't support a node type yet.
+                    // System.err.println("Translation not supported for a candidate: " + e.getMessage());
+                } catch (RuntimeException e) {
+                    // This catches SQL execution errors from the database.
+                    // This is expected for semantically incorrect queries.
+                    // System.err.println("Evaluation failed for a candidate.");
                 }
-            } catch (Exception e) {
-                System.err.println("Evaluation failed for a candidate query.");
-                // e.printStackTrace(); // Uncomment for detailed debugging
+            }
+
+            if (!solutions.isEmpty()) {
+                System.out.println("Solutions found at depth " + depth + ". Stopping search.");
+                break;
             }
         }
-
-        // You would add more loops here for other templates, e.g., FilteredSearchTemplate
 
         System.out.println("Synthesis finished. Found " + solutions.size() + " solution(s).");
         return solutions;

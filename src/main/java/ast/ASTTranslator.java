@@ -16,6 +16,23 @@ public class ASTTranslator implements Visitor<String, Void> {
     // The final SELECT clause is handled by ProjectionNode.
     // Other nodes just append their clauses.
 
+    /**
+     * Public entry point for translation.
+     * This method starts the visitor traversal from the root node.
+     *
+     * @param root The root QueryNode (the complete query AST).
+     * @return The resulting executable SQL string.
+     */
+    public String translate(QueryNode root) {
+        // We use 'root.accept(this, null)' to start the traversal.
+        // The context (Void) is not used in this translator.
+        String sql = root.accept(this, null);
+
+        // A common issue in SQL translation is extra parentheses, or missing semicolons.
+        // For this simple translator, we just return the string.
+        return sql;
+    }
+
     @Override
     public String visit(ProjectionNode node, Void context) {
         // This is the top-level query constructor.

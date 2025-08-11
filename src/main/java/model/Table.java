@@ -6,25 +6,117 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 public class Table {
 
     private final String name;
-    private final List<String> columnNames;
+    private final List<Column> columns;
     private final List<List<Object>> rows;
+    // For faster column lookup by name
+    private final Map<String, Column> columnMap;
 
-    public Table(String name, List<String> columnNames, List<List<Object>> rows) {
-        this.name = name;
-        this.columnNames = List.copyOf(columnNames);
-        this.rows = List.copyOf(rows);
+    /**
+     * Inner static class to represent a table column with a name and a type.
+     */
+    public static class Column {
+        private final String name;
+        private final String type; // Using String for type, e.g., "vector", "text", "integer"
+
+        public Column(String name, String type) {
+            this.name = Objects.requireNonNull(name, "Column name cannot be null.");
+            this.type = Objects.requireNonNull(type, "Column type cannot be null.");
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public String getType() {
+            return type;
+        }
+
+        public boolean isVector() {
+            return "vector".equalsIgnoreCase(this.type);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Column column = (Column) o;
+            return name.equals(column.name) && type.equals(column.type);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(name, type);
+        }
     }
 
-    // ... [getters and other methods remain the same] ...
-    public String getTableName() { return name; }
-    public List<String> getColumnNames() { return columnNames; }
-    public List<List<Object>> getRows() { return rows; }
-    public int getRowCount() { return rows.size(); }
-    public int getColumnCount() { return columnNames.size(); }
+    /**
+     * Constructor for the Table class using the new Column structure.
+     * @param name The name of the table.
+     * @param columns A list of Column objects defining the schema.
+     * @param rows The data rows.
+     */
+    public Table(String name, List<Column> columns, List<List<Object>> rows) {
+        this.name = name;
+        this.columns = List.copyOf(columns);
+        this.rows = List.copyOf(rows);
+
+        // Create a map for efficient column lookup by name
+        this.columnMap = new HashMap<>();
+        for (Column col : columns) {
+            this.columnMap.put(col.getName(), col);
+        }
+    }
+
+    // --- NEW and MODIFIED Getters and Helpers ---
+
+    public String getName() {
+        return name;
+    }
+
+    public List<Column> getColumns() {
+        return columns;
+    }
+
+    /**
+     * A helper to get a column object by its name.
+     * @param columnName The name of the column to find.
+     * @return An Optional containing the Column if found, otherwise empty.
+     */
+    public Optional<Column> getColumn(String columnName) {
+        return Optional.ofNullable(this.columnMap.get(columnName));
+    }
+
+    /**
+     * A convenience method to get a list of just the column names.
+     * @return A list of column name strings.
+     */
+    public List<String> getColumnNames() {
+        return this.columns.stream()
+                .map(Column::getName)
+                .collect(Collectors.toList());
+    }
+
+    // --- Unchanged Getters ---
+
+    public List<List<Object>> getRows() {
+        return rows;
+    }
+
+    public int getRowCount() {
+        return rows.size();
+    }
+
+    public int getColumnCount() {
+        return columns.size();
+    }
+
+    // --- equals and its helpers, now updated to use the new structure ---
 
     @Override
     public boolean equals(Object o) {
@@ -36,20 +128,19 @@ public class Table {
             return false;
         }
 
-        if (!new HashSet<>(this.columnNames).equals(new HashSet<>(other.columnNames))) {
+        // Compare the set of columns (name and type). Order doesn't matter.
+        if (!new HashSet<>(this.columns).equals(new HashSet<>(other.columns))) {
             return false;
         }
 
         boolean[] otherRowsMatched = new boolean[other.getRowCount()];
-
         for (List<Object> thisRow : this.getRows()) {
             boolean foundMatchForThisRow = false;
             for (int i = 0; i < other.getRowCount(); i++) {
-                if (otherRowsMatched[i]) {
-                    continue;
-                }
+                if (otherRowsMatched[i]) continue;
                 List<Object> otherRow = other.getRows().get(i);
-                if (rowsAreEquivalent(thisRow, this.columnNames, otherRow, other.columnNames)) {
+                // Pass the full Column list to the helper
+                if (rowsAreEquivalent(thisRow, this.columns, otherRow, other.columns)) {
                     otherRowsMatched[i] = true;
                     foundMatchForThisRow = true;
                     break;
@@ -62,51 +153,34 @@ public class Table {
         return true;
     }
 
-    /**
-     * Helper method with extensive debugging printouts to find the exact point of failure.
-     */
-    private boolean rowsAreEquivalent(List<Object> row1, List<String> cols1, List<Object> row2, List<String> cols2) {
-        // This method now has detailed logging.
+    private boolean rowsAreEquivalent(List<Object> row1, List<Column> cols1, List<Object> row2, List<Column> cols2) {
+        if (row1.size() != row2.size()) return false;
+
         Map<String, Object> map1 = new HashMap<>();
-        for (int i = 0; i < cols1.size(); i++) map1.put(cols1.get(i), row1.get(i));
+        for (int i = 0; i < cols1.size(); i++) map1.put(cols1.get(i).getName(), row1.get(i));
 
         Map<String, Object> map2 = new HashMap<>();
-        for (int i = 0; i < cols2.size(); i++) map2.put(cols2.get(i), row2.get(i));
+        for (int i = 0; i < cols2.size(); i++) map2.put(cols2.get(i).getName(), row2.get(i));
+
+        if (!map1.keySet().equals(map2.keySet())) return false;
 
         for (String key : map1.keySet()) {
             Object val1 = map1.get(key);
             Object val2 = map2.get(key);
 
-            // --- START OF DETAILED DEBUGGING BLOCK ---
-            System.out.println("DEBUG_EQUALS: Comparing column '" + key + "'...");
-            System.out.println("  - Value 1: " + val1 + " (Type: " + (val1 == null ? "null" : val1.getClass().getName()) + ")");
-            System.out.println("  - Value 2: " + val2 + " (Type: " + (val2 == null ? "null" : val2.getClass().getName()) + ")");
-            // --- END OF DETAILED DEBUGGING BLOCK ---
-
-            boolean areEqual;
             if (val1 instanceof Vector && val2 instanceof Vector) {
-                areEqual = vectorEqualsWithTolerance((Vector) val1, (Vector) val2, 1e-5f);
-                System.out.println("  - Comparison Method: Vector with Tolerance -> " + areEqual);
+                if (!vectorEqualsWithTolerance((Vector) val1, (Vector) val2, 1e-5f)) return false;
             } else if (val1 instanceof Number && val2 instanceof Number) {
-                Number n1 = (Number) val1;
-                Number n2 = (Number) val2;
+                Number n1 = (Number) val1; Number n2 = (Number) val2;
                 if (isFloatingPoint(n1) || isFloatingPoint(n2)) {
-                    areEqual = Math.abs(n1.doubleValue() - n2.doubleValue()) <= 1e-9;
+                    if (Math.abs(n1.doubleValue() - n2.doubleValue()) > 1e-9) return false;
                 } else {
-                    areEqual = n1.longValue() == n2.longValue();
+                    if (n1.longValue() != n2.longValue()) return false;
                 }
-                System.out.println("  - Comparison Method: Normalized Number -> " + areEqual);
-            } else {
-                areEqual = Objects.equals(val1, val2);
-                System.out.println("  - Comparison Method: Objects.equals -> " + areEqual);
-            }
-
-            if (!areEqual) {
-                System.out.println("  - MISMATCH FOUND!");
+            } else if (!Objects.equals(val1, val2)) {
                 return false;
             }
         }
-        System.out.println("DEBUG_EQUALS: All columns in the row matched.");
         return true;
     }
 
@@ -128,17 +202,19 @@ public class Table {
 
     @Override
     public int hashCode() {
-        return Objects.hash(new HashSet<>(columnNames), getRowCount());
+        // hashCode should now depend on the set of Columns, not just names.
+        return Objects.hash(new HashSet<>(this.columns), getRowCount());
     }
 
     @Override
     public String toString() {
+        List<String> colNames = getColumnNames(); // Use the helper to get names
         if (rows.isEmpty()) {
-            return String.join("\t|\t", columnNames) + "\n(No rows)";
+            return String.join("\t|\t", colNames) + "\n(No rows)";
         }
         StringBuilder sb = new StringBuilder();
-        sb.append(String.join("\t|\t", columnNames)).append("\n");
-        sb.append("-".repeat(columnNames.size() * 10)).append("\n");
+        sb.append(String.join("\t|\t", colNames)).append("\n");
+        sb.append("-".repeat(colNames.size() * 10)).append("\n");
         for (List<Object> row : rows) {
             List<String> rowStrings = new ArrayList<>();
             for (Object cell : row) {
