@@ -1,5 +1,6 @@
 package ast.nodes;
 
+import ast.LimitableQuery;
 import ast.QueryNode;
 import ast.Visitor;
 
@@ -12,10 +13,10 @@ import java.util.Objects;
  */
 public class LimitNode implements QueryNode {
 
-    private final QueryNode source;
+    private final LimitableQuery source;
     private final int value;
 
-    public LimitNode(QueryNode source, int value) {
+    public LimitNode(LimitableQuery source, int value) {
         this.source = Objects.requireNonNull(source, "Source for LimitNode cannot be null.");
         if (value < 0) {
             throw new IllegalArgumentException("LIMIT value must be non-negative.");

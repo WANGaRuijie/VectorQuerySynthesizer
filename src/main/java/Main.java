@@ -40,10 +40,11 @@ public class Main {
 
         List<Table.Column> outputSchema = List.of(
                 new Table.Column("id", "long"),
-                new Table.Column("name", "text")
+                new Table.Column("name", "text"),
+                new Table.Column("embedding", "vector")
         );
         List<List<Object>> outputRows = new ArrayList<>();
-        outputRows.add(Arrays.asList(1L, "blue-sofa"));
+        outputRows.add(Arrays.asList(1L, "blue-sofa", new Vector(new float[]{0.1f, 0.2f, 0.9f})));
         Table outputTable = new Table("output", outputSchema, outputRows);
 
 
@@ -99,7 +100,6 @@ public class Main {
             System.out.println(firstSolution.accept(printer, 0));
         }
 
-        // --- Final Step: Clean up ---
         ConnectionManager.closeConnection();
         System.out.println("\nDatabase connection closed. Test finished.");
     }

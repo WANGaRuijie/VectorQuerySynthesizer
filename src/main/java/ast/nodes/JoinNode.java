@@ -1,8 +1,6 @@
 package ast.nodes;
 
-import ast.FilterNode;
-import ast.QueryNode;
-import ast.Visitor;
+import ast.*;
 
 import java.util.Objects;
 
@@ -12,10 +10,10 @@ import java.util.Objects;
  * <p>This node corresponds to an {@code INNER JOIN} in SQL. It combines rows from a
  * left and right {@link QueryNode} source where the join {@code condition} is true.
  */
-public class JoinNode implements QueryNode {
+public class JoinNode implements OrderableQuery, LimitableQuery {
 
-    private final QueryNode left;
-    private final QueryNode right;
+    private final OrderableQuery left;
+    private final OrderableQuery right;
     private final FilterNode condition;
 
     /**
@@ -25,7 +23,7 @@ public class JoinNode implements QueryNode {
      * @param right The right-side query for the join. Must not be null.
      * @param condition The join condition (the ON clause). Must not be null.
      */
-    public JoinNode(QueryNode left, QueryNode right, FilterNode condition) {
+    public JoinNode(OrderableQuery left, OrderableQuery right, FilterNode condition) {
         this.left = Objects.requireNonNull(left, "Left source for JoinNode cannot be null.");
         this.right = Objects.requireNonNull(right, "Right source for JoinNode cannot be null.");
         this.condition = Objects.requireNonNull(condition, "Join condition cannot be null.");

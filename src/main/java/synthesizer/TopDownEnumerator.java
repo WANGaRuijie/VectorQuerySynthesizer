@@ -6,6 +6,8 @@ import ast.QueryNode;
 import ast.nodes.*;
 import ast.enums.*;
 import ast.ASTNode;
+import ast.OrderableQuery;
+import ast.LimitableQuery;
 import model.Table;
 import model.Vector;
 import java.util.ArrayList;
@@ -13,18 +15,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
- * Implements a top-down, syntax-directed enumerative search using the new Table metadata.
- * It recursively builds ASTs based on the language grammar and performs type-based pruning.
+ Implements a top-down, syntax-directed enumerative search using the new Table metadata.
+ It recursively builds ASTs based on the language grammar and performs type-based pruning.
  */
 public class TopDownEnumerator {
-
     private final List<Table> inputTables;
     // Memoization table to store results for (depth, targetType) to avoid re-computation.
     private final Map<String, List<? extends ASTNode>> memo;
-
     // Base components (leaf nodes)
     private final List<ColumnReferenceNode> availableColumns;
     private final List<ConstantValueNode> availableConstants;
@@ -61,109 +60,108 @@ public class TopDownEnumerator {
     }
 
     /**
-     * Main entry point for the top-down search.
-     * @param maxDepth The maximum depth/size of the AST to generate.
-     * @return A list of all valid, complete QueryNodes up to the given depth.
+     Main entry point for the top-down search.
+     @param maxDepth The maximum depth/size of the AST to generate.
+     @return A list of all valid, complete QueryNodes up to the given depth.
      */
     public List<QueryNode> enumerate(int maxDepth) {
         return (List<QueryNode>) enumerate(QueryNode.class, maxDepth);
     }
 
     /**
-     * The core recursive enumeration function with memoization.
+     The core recursive enumeration function with memoization.
      */
     private List<? extends ASTNode> enumerate(Class<? extends ASTNode> targetType, int depth) {
         if (depth < 0) return new ArrayList<>();
-
         String memoKey = depth + "_" + targetType.getName();
         if (memo.containsKey(memoKey)) {
             return memo.get(memoKey);
         }
-
         List<ASTNode> results = new ArrayList<>();
 
-        // --- Leaf Node Generation (depth budget can be 0 or more) ---
-        if (targetType.isAssignableFrom(ColumnReferenceNode.class)) {
-            results.addAll(availableColumns);
-        }
-        if (targetType.isAssignableFrom(ConstantValueNode.class)) {
-            results.addAll(availableConstants);
-        }
-        if (targetType.isAssignableFrom(TableNode.class)) {
-            results.add(new TableNode(primaryTable.getName()));
-        }
+        // --- Base Cases: depth = 0 (Leaf Nodes) ---
         if (depth == 0) {
+            // A TableNode is the only OrderableQuery we can generate at depth 0.
+            if (OrderableQuery.class.isAssignableFrom(targetType)) {
+                results.add(new TableNode(primaryTable.getName()));
+            }
+
+            // Expression leaves
+            if (ExpressionNode.class.isAssignableFrom(targetType)) {
+                results.addAll(availableColumns);
+                results.addAll(availableConstants);
+            }
+
             memo.put(memoKey, results);
             return results;
         }
 
-        // --- Recursive, Syntax-Directed Rules (depth must be > 0) ---
+        // --- Recursive Rules (depth > 0) ---
+        // Rule: To generate an OrderableQuery (e.g., Table, Select, Join)
+        if (OrderableQuery.class.isAssignableFrom(targetType)) {
+            // It can be a SelectNode applied to another OrderableQuery of a smaller depth.
+            List<OrderableQuery> sources = (List<OrderableQuery>) enumerate(OrderableQuery.class, depth - 1);
+            List<FilterNode> filters = (List<FilterNode>) enumerate(FilterNode.class, depth - 1);
+            for (OrderableQuery source : sources) {
+                for (FilterNode filter : filters) {
+                    results.add(new SelectNode(source, filter));
+                }
+            }
+        // Add rules for JoinNode here if needed.
+        }
 
-        // Rule: Generate ExpressionNodes
-        if (ExpressionNode.class.isAssignableFrom(targetType)) {
-            // An Expression can be a DistanceExpression
-            List<ExpressionNode> leftExprs = (List<ExpressionNode>) enumerate(ExpressionNode.class, depth - 1);
-            List<ExpressionNode> rightExprs = (List<ExpressionNode>) enumerate(ExpressionNode.class, depth - 1);
-            for (ExpressionNode left : leftExprs) {
-                for (ExpressionNode right : rightExprs) {
-                    // Semantic Pruning: only combine if both sides are vectors.
-                    if (isVector(left) && isVector(right)) {
-                        for (DistanceOperator op : DistanceOperator.values()) {
-                            results.add(new DistanceExpressionNode(left, op, right));
-                        }
+        // Rule: To generate a LimitableQuery (e.g., OrderableQuery, OrderByNode)
+        if (LimitableQuery.class.isAssignableFrom(targetType)) {
+            // Option 1: Any OrderableQuery of the same depth is also Limitable.
+            results.addAll((List<LimitableQuery>) enumerate(OrderableQuery.class, depth));
+
+            // Option 2: An OrderByNode applied to an OrderableQuery of a smaller depth.
+            // The depth budget is now simpler: 1 for the OrderByNode, depth-1 for the source.
+            // The ColumnReferenceNode is a leaf (depth 0), so it doesn't consume depth from the budget.
+            if (depth > 0) {
+                List<OrderableQuery> sources = (List<OrderableQuery>) enumerate(OrderableQuery.class, depth - 1);
+
+                // Get all available columns to sort by. These are leaf nodes.
+                List<ColumnReferenceNode> sortableColumns = this.availableColumns;
+
+                for (OrderableQuery source : sources) {
+                    for (ColumnReferenceNode column : sortableColumns) {
+                        // Create versions for both ASC and DESC
+                        results.add(new OrderByNode(source, column, SortOrder.ASC));
+                        results.add(new OrderByNode(source, column, SortOrder.DESC));
                     }
                 }
             }
         }
 
-        // Rule: Generate FilterNodes (e.g., PredicateNode)
-        if (FilterNode.class.isAssignableFrom(targetType)) {
-            List<ExpressionNode> leftExprs = (List<ExpressionNode>) enumerate(ExpressionNode.class, depth - 1);
-            List<ExpressionNode> rightExprs = (List<ExpressionNode>) enumerate(ExpressionNode.class, depth - 1);
-            for (ExpressionNode left : leftExprs) {
-                for (ExpressionNode right : rightExprs) {
-                    // Semantic Pruning: Check for type compatibility
-                    if (areTypesCompatibleForPredicate(left, right)) {
-                        for (PredicateOperator op : PredicateOperator.values()) {
-                            results.add(new PredicateNode(left, op, right));
-                        }
-                    }
-                }
-            }
-        }
+        // Rule: To generate a top-level QueryNode (e.g., LimitableQuery, LimitNode)
+        if (targetType == QueryNode.class) { // Exact match for the final query type
+            // Option 1: Any LimitableQuery is a valid final query.
+            results.addAll((List<QueryNode>) enumerate(LimitableQuery.class, depth));
 
-        // Rule: Generate QueryNodes (e.g., OrderByNode, LimitNode)
-        if (QueryNode.class.isAssignableFrom(targetType)) {
-            List<QueryNode> sourceQueries = (List<QueryNode>) enumerate(QueryNode.class, depth - 1);
-            for (QueryNode source : sourceQueries) {
-                // Option 1: Add an OrderBy clause
-                List<ExpressionNode> sortableExprs = (List<ExpressionNode>) enumerate(ExpressionNode.class, 0); // Use simple expressions for sorting
-                for (ExpressionNode expr : sortableExprs) {
-                    results.add(new OrderByNode(source, List.of(new SortExpression(expr))));
-                }
-
-                // Option 2: Add a Limit clause
-                for (int k : List.of(1, 2, 3, 4, 5, 6, 7)) { // Hardcoded limit values for enumeration
+            // Option 2: A LimitNode applied to a LimitableQuery of smaller depth.
+            List<LimitableQuery> sources = (List<LimitableQuery>) enumerate(LimitableQuery.class, depth - 1);
+            for (LimitableQuery source : sources) {
+                for (int k : List.of(1, 2, 5, 10)) { // Hardcoded limit values for enumeration
                     results.add(new LimitNode(source, k));
                 }
-
-                // Option 3: Add a Where clause
-                //List<FilterNode> filters = (List<FilterNode>) enumerate(FilterNode.class, depth - 1);
-                //for (FilterNode filter a: filters) {
-                //    results.add(new SelectNode(source, filter));
-                //}
             }
         }
 
-        // The final assembly of ProjectionNode should be handled in the Synthesizer
-        // to ensure the final query is always a valid SELECT statement.
+        // Rules for generating ExpressionNode and FilterNode primitives.
+        if (ExpressionNode.class.isAssignableFrom(targetType)) {
+            generateExpressions(results, depth);
+        }
+        if (FilterNode.class.isAssignableFrom(targetType)) {
+            generateFilters(results, depth);
+        }
 
         memo.put(memoKey, results);
         return results;
     }
 
     /**
-     * Helper for semantic checks: Determines if an expression resolves to a vector type.
+     Helper for semantic checks: Determines if an expression resolves to a vector type.
      */
     private boolean isVector(ExpressionNode node) {
         if (node instanceof ColumnReferenceNode) {
@@ -177,10 +175,44 @@ public class TopDownEnumerator {
         // A full implementation would require a type inference system for complex expressions.
         return false;
     }
+    
+    // --- Helper methods for generating primitive expressions and filters ---
+    private void generateExpressions(List<ASTNode> results, int depth) {
+        if (depth > 0) {
+            List<ExpressionNode> children = (List<ExpressionNode>) enumerate(ExpressionNode.class, depth - 1);
+            for (ExpressionNode left : children) {
+                // Combine with a leaf node to maintain the depth model (1 + max(children))
+                for (ExpressionNode right : (List<ExpressionNode>) enumerate(ExpressionNode.class, 0)) {
+                    if (isVector(left) && isVector(right)) {
+                        for (DistanceOperator op : DistanceOperator.values()) {
+                            results.add(new DistanceExpressionNode(left, op, right));
+                            results.add(new DistanceExpressionNode(right, op, left)); // Symmetric
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private void generateFilters(List<ASTNode> results, int depth) {
+        if (depth > 0) {
+            List<ExpressionNode> children = (List<ExpressionNode>) enumerate(ExpressionNode.class, depth - 1);
+            for (ExpressionNode left : children) {
+                for (ExpressionNode right : (List<ExpressionNode>) enumerate(ExpressionNode.class, 0)) {
+                    if (areTypesCompatibleForPredicate(left, right)) {
+                        for (PredicateOperator op : PredicateOperator.values()) {
+                            results.add(new PredicateNode(left, op, right));
+                            results.add(new PredicateNode(right, op, left)); // Symmetric
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     /**
-     * Helper for semantic checks: Determines if two expressions are compatible for a predicate.
-     * E.g., don't compare a vector to a number.
+     Helper for semantic checks: Determines if two expressions are compatible for a predicate.
+     E.g., don't compare a vector to a number.
      */
     private boolean areTypesCompatibleForPredicate(ExpressionNode left, ExpressionNode right) {
         boolean leftIsVec = isVector(left);
@@ -189,4 +221,5 @@ public class TopDownEnumerator {
         return leftIsVec == rightIsVec;
     }
 }
+
 

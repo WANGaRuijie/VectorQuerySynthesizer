@@ -1,8 +1,6 @@
 package ast.nodes;
 
-import ast.FilterNode;
-import ast.QueryNode;
-import ast.Visitor;
+import ast.*;
 
 import java.util.Objects;
 
@@ -12,9 +10,9 @@ import java.util.Objects;
  * <p>This node corresponds to the {@code WHERE} clause in a SQL query. It takes a
  * {@link QueryNode} as its source and applies a {@link FilterNode} to it.
  */
-public class SelectNode implements QueryNode {
+public class SelectNode implements OrderableQuery, LimitableQuery {
 
-    private final QueryNode source;
+    private final OrderableQuery source;
     private final FilterNode filter;
 
     /**
@@ -23,7 +21,7 @@ public class SelectNode implements QueryNode {
      * @param source The input query providing the data. Must not be null.
      * @param filter The filter condition to apply. Must not be null.
      */
-    public SelectNode(QueryNode source, FilterNode filter) {
+    public SelectNode(OrderableQuery source, FilterNode filter) {
         this.source = Objects.requireNonNull(source, "Source for SelectNode cannot be null.");
         this.filter = Objects.requireNonNull(filter, "Filter for SelectNode cannot be null.");
     }

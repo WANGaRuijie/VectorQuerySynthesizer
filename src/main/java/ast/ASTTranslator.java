@@ -11,11 +11,6 @@ import java.util.stream.Collectors;
  */
 public class ASTTranslator implements Visitor<String, Void> {
 
-    // --- Core Query Assembly Logic ---
-    // The main idea is to recursively build the query string.
-    // The final SELECT clause is handled by ProjectionNode.
-    // Other nodes just append their clauses.
-
     /**
      * Public entry point for translation.
      * This method starts the visitor traversal from the root node.
@@ -26,11 +21,7 @@ public class ASTTranslator implements Visitor<String, Void> {
     public String translate(QueryNode root) {
         // We use 'root.accept(this, null)' to start the traversal.
         // The context (Void) is not used in this translator.
-        String sql = root.accept(this, null);
-
-        // A common issue in SQL translation is extra parentheses, or missing semicolons.
-        // For this simple translator, we just return the string.
-        return sql;
+        return root.accept(this, null);
     }
 
     @Override
@@ -50,24 +41,24 @@ public class ASTTranslator implements Visitor<String, Void> {
 
     @Override
     public String visit(LimitNode node, Void context) {
-        // A LimitNode appends "LIMIT k" to its source's SQL.
         String sourceSql = node.getSource().accept(this, null);
         return sourceSql + " LIMIT " + node.getValue();
     }
 
     @Override
     public String visit(RenameNode node, Void context) {
-        return null;
+        // For subqueries, we need to apply an alias.
+        String sourceSql = node.getSource().accept(this, null);
+        // Wrap the source in parentheses to apply the alias.
+        return "(" + sourceSql + ") AS " + node.getNewName();
     }
 
     @Override
     public String visit(OrderByNode node, Void context) {
         // An OrderByNode appends "ORDER BY ..." to its source's SQL.
         String sourceSql = node.getSource().accept(this, null);
-        String sortExprs = node.getSortExpressions().stream()
-                .map(se -> se.accept(this, null))
-                .collect(Collectors.joining(", "));
-        return sourceSql + " ORDER BY " + sortExprs;
+        ColumnReferenceNode sortColumn = node.getSortColumn();
+        return sourceSql + " ORDER BY " + sortColumn.getColumnName() + " " + node.getSortOrder().toString();
     }
 
     @Override
@@ -75,8 +66,6 @@ public class ASTTranslator implements Visitor<String, Void> {
         // The base case for the recursion: a table name.
         return node.getTableName();
     }
-
-    // --- Expression and other node translations remain the same ---
 
     private String translateAliasedExpression(AliasedExpression aliasedExpr) {
         String exprSql = aliasedExpr.expression().accept(this, null);
@@ -127,29 +116,57 @@ public class ASTTranslator implements Visitor<String, Void> {
         return expr + " ASC";
     }
 
-    // ... [ The rest of your visit methods, using the 'unsupported' helper ] ...
     private String unsupported(ASTNode node) {
         throw new UnsupportedOperationException("ASTTranslator does not yet support visiting " + node.getClass().getSimpleName());
     }
 
     @Override public String visit(WithNode node, Void c) { return unsupported(node); }
     @Override public String visit(FunctionCallNode node, Void c) { return unsupported(node); }
-    @Override public String visit(ScalarSubqueryNode node, Void c) { return unsupported(node); }
-    @Override public String visit(SelectNode node, Void c) { return unsupported(node); } // For WHERE
+
+    @Override
+    public String visit(ScalarSubqueryNode node, Void context) {
+        // A scalar subquery must be enclosed in parentheses.
+        return "(" + node.getQuery().accept(this, null) + ")";
+    }
+
+    @Override
+    public String visit(SelectNode node, Void context) {
+        // A SelectNode represents a WHERE clause.
+        String sourceSql = node.getSource().accept(this, null);
+        String filterSql = node.getFilter().accept(this, null);
+        return sourceSql + " WHERE " + filterSql;
+    }
 
     @Override
     public String visit(JoinNode node, Void context) {
-        return null;
+        // Translates to "source1 JOIN source2 ON condition".
+        String leftSql = node.getLeft().accept(this, null);
+        String rightSql = node.getRight().accept(this, null);
+        String conditionSql = node.getCondition().accept(this, null);
+
+        // Wrap sources in parentheses if they are not simple tables.
+        if (!(node.getLeft() instanceof TableNode)) {
+            leftSql = "(" + leftSql + ") AS left_sub";
+        }
+        if (!(node.getRight() instanceof TableNode)) {
+            rightSql = "(" + rightSql + ") AS right_sub";
+        }
+        return leftSql + " JOIN " + rightSql + " ON " + conditionSql;
     }
 
     @Override
     public String visit(UnionNode node, Void context) {
-        return null;
+        // Translates to "(query1) UNION (query2)". Parentheses are important.
+        String leftSql = node.getLeft().accept(this, null);
+        String rightSql = node.getRight().accept(this, null);
+        return "(" + leftSql + ") UNION (" + rightSql + ")";
     }
 
     @Override public String visit(AggregationNode node, Void c) { return unsupported(node); }
     @Override public String visit(AggregateExpressionNode node, Void c) { return unsupported(node); }
+
     @Override public String visit(AndFilterNode node, Void c) { return "(" + node.getLeft().accept(this, c) + " AND " + node.getRight().accept(this, c) + ")"; }
+
     @Override public String visit(PredicateNode node, Void c) { return unsupported(node); }
 
     @Override
@@ -157,9 +174,10 @@ public class ASTTranslator implements Visitor<String, Void> {
         return null;
     }
 
-    // ... etc. for all methods in the Visitor interface
     @Override public String visit(CastExpressionNode node, Void c) { return "CAST(" + node.getExpression().accept(this, c) + " AS " + node.getTargetType() + ")"; }
+
     @Override public String visit(OrFilterNode node, Void c) { return "(" + node.getLeft().accept(this, c) + " OR " + node.getRight().accept(this, c) + ")"; }
+
     @Override public String visit(NotFilterNode node, Void c) { return "NOT (" + node.getChild().accept(this, c) + ")"; }
 
     @Override

@@ -1,5 +1,7 @@
 package ast.nodes;
 
+import ast.LimitableQuery;
+import ast.OrderableQuery;
 import ast.QueryNode;
 import ast.Visitor;
 import java.util.Objects;
@@ -9,7 +11,7 @@ import java.util.Objects;
  *
  * <p>This node combines the result sets of two child {@link QueryNode}s.
  */
-public class UnionNode implements QueryNode {
+public class UnionNode implements OrderableQuery, LimitableQuery {
 
     private final QueryNode left;
     private final QueryNode right;

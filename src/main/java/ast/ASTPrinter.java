@@ -16,7 +16,6 @@ public class ASTPrinter implements Visitor<String, Integer> {
         return "  ".repeat(Math.max(0, level));
     }
 
-    // This helper is still useful for lists of simple nodes.
     private String visitChildren(List<? extends ASTNode> children, int level) {
         StringBuilder sb = new StringBuilder();
         for (ASTNode child : children) {
@@ -59,9 +58,6 @@ public class ASTPrinter implements Visitor<String, Integer> {
         return sb.toString();
     }
 
-
-    // --- MODIFIED VISIT METHODS ---
-
     @Override
     public String visit(ProjectionNode node, Integer level) {
         StringBuilder sb = new StringBuilder();
@@ -79,8 +75,6 @@ public class ASTPrinter implements Visitor<String, Integer> {
         sb.append(node.getSource().accept(this, level + 2));
         return sb.toString();
     }
-
-    // --- EXISTING METHODS (with corrected names and implementations) ---
 
     @Override
     public String visit(TableNode node, Integer level) {
@@ -102,12 +96,14 @@ public class ASTPrinter implements Visitor<String, Integer> {
     public String visit(OrderByNode node, Integer level) {
         StringBuilder sb = new StringBuilder();
         sb.append(indent(level)).append("OrderByNode\n");
-        sb.append(indent(level + 1)).append("Sort Expressions:\n");
-        sb.append(visitChildren(node.getSortExpressions(), level + 2));
+        sb.append(indent(level + 1)).append("Sort Column:\n");
+        sb.append(node.getSortColumn().accept(this, level + 2));
+        sb.append(indent(level + 1)).append("Sort Order: ").append(node.getSortOrder()).append("\n");
         sb.append(indent(level + 1)).append("Source:\n");
         sb.append(node.getSource().accept(this, level + 2));
         return sb.toString();
     }
+
 
     @Override
     public String visit(LimitNode node, Integer level) {

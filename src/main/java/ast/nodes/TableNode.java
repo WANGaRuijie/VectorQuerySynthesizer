@@ -1,9 +1,11 @@
 package ast.nodes;
 
+import ast.LimitableQuery;
+import ast.OrderableQuery;
 import ast.QueryNode;
 import ast.Visitor;
 
-public class TableNode implements QueryNode {
+public class TableNode implements OrderableQuery, LimitableQuery {
 
     private final String tableName;
 
